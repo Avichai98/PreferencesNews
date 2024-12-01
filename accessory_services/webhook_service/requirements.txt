@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+requests
+pymongo
+passlib
+httpx
+dapr-ext-fastapi-dev
+dapr

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+dapr
+httpx
+google-generativeai
+newsdataapi
+email-validator
+requests
