@@ -1,7 +1,6 @@
+import json
 from dapr.clients import DaprClient
 from fastapi import FastAPI, HTTPException
-import requests
-from pydantic import BaseModel
 from authentication_model import AuthenticationModel
 from preference_model import PreferencesModel
 from user_function import get_user_by_email, save_user, update_user_preferences, \
@@ -9,43 +8,26 @@ from user_function import get_user_by_email, save_user, update_user_preferences,
 
 app = FastAPI()
 
-DAPR_HTTP_PORT = 3500  # Dapr sidecar HTTP port
-PUBSUB_NAME = 'rabbitmq-pubsub'  # Name of the pub/sub Component
-TOPIC_NAME = 'news_requests'  # Topic to publish news requests
-
-
-class NewsRequest(BaseModel):
-    email: str
-
 
 @app.post("/user/news")
 async def request_news(preferences: PreferencesModel):
     try:
         data = preferences.model_dump()
-        response = requests.post(f"http://news_manager:8001/news", json=data)
-        response.raise_for_status()  # Raise HTTPError for bad responses
-        return response.json()
+
+        # Publish the preferences data using Dapr PubSub
+        with DaprClient() as client:
+            result = client.publish_event(
+                pubsub_name='newspubsub',  # Your pubsub component
+                topic_name='news_requests',  # Topic to publish to
+                data=json.dumps(data),  # Convert data to JSON
+                data_content_type='application/json',  # Content type
+            )
+        print(data)
+        print(json.dumps(data))  # To debug the structure of the published message
+
+        return f' message": "Event published successfully", "status": {result}, data: {data}'
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/user/news1")
-async def request_news(request: NewsRequest):
-    """
-    Publish a news request to the 'news_requests' topic asynchronously using DaprClient.
-    """
-    try:
-        async with DaprClient() as client:
-            # Publish the message to the specified topic
-            await client.publish_event(
-                pubsub_name=PUBSUB_NAME,
-                topic_name=TOPIC_NAME,
-                data=request.email  # Payload to send
-            )
-        return {"status": "accepted", "message": "News request published successfully."}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to publish news request: {str(e)}")
 
 
 @app.post("/user/register")

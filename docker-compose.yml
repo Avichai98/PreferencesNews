@@ -8,32 +8,26 @@ services:
     ports:
       - "8000:8000"  # App port
     depends_on:
-     - rabbitmq
-    volumes:
-      - ./dapr:/dapr
+     - redis
+    networks:
+      - network-dapr
 
-
-  user_manager-dapr:
-    image: "daprio/daprd:1.11.4"
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 10
-        window: 120s
+  user-dapr:
+    image: "daprio/daprd:edge"
     command: [ "./daprd",
                "-app-port", "8000",
                "-app-id", "user_manager",
                "-app-protocol", "http",
                "-dapr-http-port", "3500",
-               "-components-path", "./dapr/components",
-               "-config", "./dapr/config.yaml",
+               "--resources-path", "./dapr/components",
+               "-log-level", "debug"
     ]
     volumes:
       - "./dapr/:/dapr"
     depends_on:
       - user_manager
-    #network_mode: "service:user_manager"
+      - mongo
+    network_mode: "service:user_manager"
 
   news_manager:
     env_file: "news_manager.env"
@@ -42,34 +36,28 @@ services:
     ports:
       - "8001:8001"
     depends_on:
-     - rabbitmq
-    environment:
-      - ASPNET CORE_URLS=http://+:80
-      - ASPNET CORE_ENVIRONMENT=Development
-    #networks:
-     # - network-dapr
+      - redis
+      - mongo
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8000
+    networks:
+      - network-dapr
 
-  news_manager_dapr:
-    image: "daprio/daprd:1.11.4"
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 10
-        window: 120s
+  news-dapr:
+    image: "daprio/daprd:edge"
     command: [ "./daprd",
-               "-app-port", "80",
+               "-app-port", "8000",
                "-app-id", "news_manager",
                "-app-protocol", "http",
                "-dapr-http-port", "3500",
-               "-components-path", "./dapr/components",
-               "-config", "./dapr/config.yaml",
+               "--resources-path", "./dapr/components",
+               "-log-level", "debug"
     ]
     volumes:
       - "./dapr/:/dapr"
     depends_on:
       - news_manager
-    #network_mode: "service:news_manager"
+    network_mode: "service:news_manager"
 
   # Accessory Services
   notification_service:
@@ -79,28 +67,14 @@ services:
     ports:
       - "8002:8002"
     depends_on:
-      - rabbitmq
+      - redis
+      - mongo
     volumes:
       - ./components:/components
     command: >
       uvicorn main:app --host 0.0.0.0 --port 8002
-
-  notification_service_dapr:
-    image: "daprio/daprd:1.11.4"
-    command: [
-      "./daprd",
-      "--app-id", "notification_service",
-      "--app-port", "8002",
-      "--dapr-http-port", "3500",
-      "--placement-host-address", "dapr_placement:50006",
-      "--resources-path", "/components"
-    ]
-    depends_on:
-      - notification_service
-      #- dapr_placement
-    volumes:
-      - ./components:/components
-  #  network_mode: "service:notification_service"
+    networks:
+      - network-dapr
 
   webhook_service:
     env_file: notification_service.env
@@ -108,6 +82,16 @@ services:
       context: accessory_services/webhook_service
     ports:
       - "5000:5000"
+    networks:
+      - network-dapr
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    ports:
+      - "6379:6379"  # Redis default port
+    networks:
+      - network-dapr
 
 
   # MongoDB for Persistent Data
@@ -118,18 +102,13 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    networks:
+      - network-dapr
 
-  rabbitmq:
-    image: "rabbitmq:3-management-alpine"
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    #networks:
-     # - network-dapr
 
 volumes:
   mongo_data:
     driver: local
 
-#networks:
- # network-dapr:
+networks:
+  network-dapr:

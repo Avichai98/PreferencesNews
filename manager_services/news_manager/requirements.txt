@@ -6,3 +6,5 @@ google-generativeai
 newsdataapi
 email-validator
 requests
+dapr-ext-fastapi
+cloudevents

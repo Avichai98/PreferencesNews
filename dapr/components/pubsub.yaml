@@ -1,19 +1,12 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: rabbitmq-pubsub
-  namespace: default
+  name: newspubsub
 spec:
-  type: pubsub.rabbitmq
+  type: pubsub.redis
   version: v1
   metadata:
-  - name: host
-    value: amqp://guest:guest@rabbitmq:5672
-  - name: durable
-    value: true
-  - name: deletedWhenUnused
-    value: false
-  - name: autoAck
-    value: false
-auth:
-  secretStore: ""
+  - name: redisHost
+    value: redis:6379
+  - name: redisPassword
+    value: ""
