@@ -24,8 +24,9 @@ def send_email(data):
 
 
 def telegram_bot_send_news(data):
-    telegram_id = data.get("telegram_id")
-    news = data.get("news")
+    # Extract values from the nested 'data' dictionary
+    telegram_id = data['data'].get("telegram_id")
+    news = data['data'].get("news")
 
     bot_token = os.getenv("BOT_TOKEN")
     print(telegram_id)

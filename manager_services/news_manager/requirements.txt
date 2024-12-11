@@ -1,10 +1,7 @@
 fastapi
 uvicorn
-dapr
-httpx
 google-generativeai
 newsdataapi
 email-validator
-requests
-dapr-ext-fastapi
-cloudevents
+dapr-ext-fastapi-dev
+dapr>=1.14.0a,<1.15.0

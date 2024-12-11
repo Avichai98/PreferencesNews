@@ -1,12 +1,28 @@
+# newspubsub component
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: newspubsub
+  name: newspubsub  # This must match PUBSUB_NAME in the relevant service
 spec:
   type: pubsub.redis
   version: v1
   metadata:
-  - name: redisHost
-    value: redis:6379
-  - name: redisPassword
-    value: ""
+    - name: redisHost
+      value: redis:6379  # Ensure the Redis host and port are correct
+    - name: redisPassword
+      value: ""  # Add password if Redis requires one
+
+---
+# notificationpubsub component
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: notificationpubsub  # This must match PUBSUB_NAME in the relevant service
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis:6379
+    - name: redisPassword
+      value: ""

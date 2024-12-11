@@ -9,6 +9,7 @@ services:
       - "8000:8000"  # App port
     depends_on:
      - redis
+     - mongo
     networks:
       - network-dapr
 
@@ -72,9 +73,25 @@ services:
     volumes:
       - ./components:/components
     command: >
-      uvicorn main:app --host 0.0.0.0 --port 8002
+      uvicorn main:app --host 0.0.0.0 --port 8001
     networks:
       - network-dapr
+
+  notification-dapr:
+    image: "daprio/daprd:edge"
+    command: [ "./daprd",
+               "-app-port", "8001",
+               "-app-id", "notification_manager",
+               "-app-protocol", "http",
+               "-dapr-http-port", "3500",
+               "--resources-path", "./dapr/components",
+               "-log-level", "debug"
+    ]
+    volumes:
+      - "./dapr/:/dapr"
+    depends_on:
+      - notification_service
+    network_mode: "service:notification_service"
 
   webhook_service:
     env_file: notification_service.env
@@ -93,7 +110,6 @@ services:
     networks:
       - network-dapr
 
-
   # MongoDB for Persistent Data
   mongo:
     image: mongo:latest
@@ -104,7 +120,6 @@ services:
       - mongo_data:/data/db
     networks:
       - network-dapr
-
 
 volumes:
   mongo_data:

@@ -1,4 +1,3 @@
-from bson import ObjectId
 from mongoDB import mongo
 from pymongo.errors import DuplicateKeyError
 from passlib.hash import bcrypt

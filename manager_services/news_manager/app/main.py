@@ -1,8 +1,7 @@
-import requests
+import json
+from dapr.clients import DaprClient
 from dapr.ext.fastapi import DaprApp
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
-
 from preference_model import PreferencesModel
 from news_function import news_data_api, gemini_api
 
@@ -30,7 +29,6 @@ async def news_requests_subscriber(request: Request):
         response_ai_api = gemini_api(response_news)  # Filter the news by AI
 
         platforms = preferences.platforms
-        telegram_response = None
 
         if 'email' in platforms:
             print("Sending email")
@@ -43,51 +41,24 @@ async def news_requests_subscriber(request: Request):
 
         if 'Telegram' in platforms:
             print("Sending Telegram")
-            telegram_response = requests.post(
-                'http://notification_service:8002/telegram_notification',
-                json={'news': response_ai_api.text, 'telegram_id': preferences.telegram_id}
-            )
-            telegram_response.raise_for_status()
 
-        if not telegram_response:
-            raise HTTPException(status_code=404, detail="No Telegram found.")
-        else:
-            print(telegram_response.json())
-            return telegram_response.json()
+            data = {
+                'news': response_ai_api.text,  # Assuming response_ai_api.text is the news content
+                'telegram_id': preferences.telegram_id  # Example data from user preferences
+            }
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            # Publish the notification data using Dapr PubSub
+            with DaprClient() as client:
+                try:
+                    result = client.publish_event(
+                        pubsub_name='notificationpubsub',  # Your pubsub component
+                        topic_name='notification_requests',  # Topic to publish to
+                        data=json.dumps(data),  # Data to send (it will be serialized automatically)
+                        data_content_type='application/json',  # Ensure content type is set to JSON
+                    )
+                    print("Event published successfully:", result)
+                except Exception as e:
+                    print("Error publishing event:", e)
 
-# Send the news
-@app.post("/news")
-async def post_news(preferences: PreferencesModel):
-    categories = preferences.categories
-    response_news = news_data_api(categories, preferences.language)  # Get news from the API
-    if not response_news:
-        return {"message": "No news found for the given categories."}
-    response_ai_api = gemini_api(response_news)  # filter the news by AI
-    try:
-        platforms = preferences.platforms
-        email_response = ''
-        telegram_response = ''
-
-        if 'email' in platforms:
-            print("Sending email")
-            # email_response = requests.post('http://notification_service:8002/email_notification',
-            #                              json={'news': response_ai_api.text, 'email': preferences.email})
-            # email_response.raise_for_status()  # Raise HTTPError for bad responses
-
-        if 'Telegram' in platforms:
-            print("Sending telegram")
-            telegram_response = requests.post('http://notification_service:8002/telegram_notification',
-                                              json={'news': response_ai_api.text,
-                                                    'telegram_id': preferences.telegram_id})
-            telegram_response.raise_for_status()
-
-        if 'Telegram' not in platforms:
-            return HTTPException(status_code=404, detail="No telegram found.")
-        else:
-            print(telegram_response.json())
-            return telegram_response.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

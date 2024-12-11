@@ -1,5 +1,4 @@
 from bson import ObjectId
-
 from mongoDB import mongo
 
 # Access the users collection

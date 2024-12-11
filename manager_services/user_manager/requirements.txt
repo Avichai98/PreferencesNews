@@ -1,10 +1,6 @@
 fastapi
-uvicorn
 email-validator
 pymongo
 passlib
-httpx
-dapr-ext-fastapi-dev
-dapr
 dapr>=1.14.0a,<1.15.0
-requests
+uvicorn

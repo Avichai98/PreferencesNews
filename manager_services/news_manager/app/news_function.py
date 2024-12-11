@@ -1,5 +1,4 @@
 import os
-
 from newsdataapi import NewsDataApiClient
 import google.generativeai as genai
 

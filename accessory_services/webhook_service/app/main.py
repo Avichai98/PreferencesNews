@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Request
-
 from webhook_function import update_chat_id
 
 app = FastAPI()
